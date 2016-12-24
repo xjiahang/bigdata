@@ -15,7 +15,7 @@ def send_stock_info(producer, topic, symbol):
     stock_lastTradePrice = float(stock_json[0]['LastTradePrice'])
     print(stock_symbol, stock_lastTradeTime, stock_lastTradePrice)
     payload = ('{"StockSymbol : %s, "LastTradeTime" : %s, "LastTradePrice" : %.2f}' % (stock_symbol, stock_lastTradeTime, stock_lastTradePrice)).encode("utf-8")
-    producer.send(topic, payload)
+    producer.send(topic, value = payload)
 
 if __name__ == "__main__":
     
