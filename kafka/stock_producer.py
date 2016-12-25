@@ -26,7 +26,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
 
-    producer = KafkaProducer(bootstrap_servers = [args.kafka_url])
+   # producer = KafkaProducer(bootstrap_servers = [args.kafka_url])
+    producer = KafkaProducer()
     schedule.every().second.do(send_stock_info, producer, args.topic, args.stock_symbol)
     while True:
         schedule.run_pending()
