@@ -12,8 +12,7 @@ def send_stock_info(producer, topic, symbol):
     stock_json = getQuotes(symbol)
     stock_symbol = stock_json[0]['StockSymbol']
     stock_lastTradeTime = stock_json[0]['LastTradeDateTime']
-    stock_lastTradePrice = float(4)
-    #stock_lastTradePrice = float(stock_json[0]['LastTradePrice'])
+    stock_lastTradePrice = float(stock_json[0]['LastTradePrice'])
     print(stock_symbol, stock_lastTradeTime, stock_lastTradePrice)
     payload = ('{"StockSymbol":"%s", "LastTradeDateTime":"%s", "LastTradePrice":"%.2f"}' % (stock_symbol, stock_lastTradeTime, stock_lastTradePrice)).encode("utf-8")
     print(payload)
@@ -28,10 +27,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
 
-   # producer = KafkaProducer(bootstrap_servers = [args.kafka_url])
-    producer = KafkaProducer()
+    producer = KafkaProducer(bootstrap_servers = [args.kafka_url])
     schedule.every().second.do(send_stock_info, producer, args.topic, args.stock_symbol)
     while True:
         schedule.run_pending()
-        time.sleep(4)
+        time.sleep(1)
 
