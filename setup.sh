@@ -1,5 +1,8 @@
 #! /bin/bash 
 
+TOPIC_SPARK=$1
+TOPIC_REDIS=$2
+
 #
 #Start Zookeeper Container
 #
@@ -37,7 +40,8 @@ echo "Start to run Kafka"
 
 sleep 5
 
-./../kafka_2.11-0.10.0.1/bin/kafka-topics.sh --create --if-not-exists  --zookeeper localhost --replication-factor 1 --partitions 1 --topic stock 
+./../kafka_2.11-0.10.0.1/bin/kafka-topics.sh --create --if-not-exists  --zookeeper localhost --replication-factor 1 --partitions 1 --topic $TOPIC_SPARK 
+./../kafka_2.11-0.10.0.1/bin/kafka-topics.sh --create --if-not-exists  --zookeeper localhost --replication-factor 1 --partitions 1 --topic $TOPIC_REDIS 
 
 sleep 2
 
