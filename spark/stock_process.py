@@ -8,6 +8,8 @@ import argparse
 import time
 import json
 
+producer = None
+
 def process(timeobj, rdd):
     record_count = rdd.count()
     if record_count == 0:
@@ -21,9 +23,9 @@ def process(timeobj, rdd):
     
     average = price_sum / record_count
     current_time = time.time()
-    payload = json.dumps({"time": time.time() , "average_price": average})
-    producer = KafkaProducer()
-    producer.send("stock_average", value = payload)
+    payload = json.dumps({"timestamp": time.time() , "average_price": average})
+    producer.send("redisconsume1", value = payload)
+    print payload
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -42,6 +44,7 @@ if __name__ == "__main__":
     ssc = StreamingContext(sc, 4)
     dstream = KafkaUtils.createDirectStream(ssc, [topic], {"metadata.broker.list": brokers})
     dstream.foreachRDD(process)
+    producer = KafkaProducer()
 
     ssc.start()
     ssc.awaitTermination()
