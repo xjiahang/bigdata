@@ -1,0 +1,139 @@
+diff --git a/redis/start_redis.sh b/redis/start_redis.sh
+index c734845..01a52d1 100755
+--- a/redis/start_redis.sh
++++ b/redis/start_redis.sh
+@@ -1,5 +1,5 @@
+ #! /bin/bash
+ 
+-KAFKA_TOPIC=$1
+-REDIS_CHANNEL=$2
++KAFKA_TOPIC=average-price
++REDIS_CHANNEL=average-stock
+ python redis_publish.py $KAFKA_TOPIC localhost:9092 localhost 6379 $REDIS_CHANNEL
+diff --git a/setup.sh b/setup.sh
+deleted file mode 100755
+index 75b1667..0000000
+--- a/setup.sh
++++ /dev/null
+@@ -1,77 +0,0 @@
+-#! /bin/bash 
+-
+-TOPIC_SPARK=$1
+-TOPIC_REDIS=$2
+-
+-#
+-#Start Zookeeper Container
+-#
+-ZK_RUNNIING=$(docker inspect -f {{.State.Running}} zookeeper)
+-if [ $? -eq 1 ]; then
+-    echo "Zookeeper container does not exist"
+-    docker run -d -p 2181:2181 -p 2888:2888 -p 3888:3888 --name zookeeper confluent/zookeeper
+-fi
+-
+-if [ "$ZK_RUNNIING" = "false" ]; then
+-    docker start zookeeper
+-fi
+-
+-echo "Start to run Zookeeper"
+-sleep 5
+-
+-#
+-#Start Kafka Container
+-#
+-KAFKA_RUNNING=$(docker inspect -f {{.State.Running}} kafka)
+-if [ $? -eq 1 ]; then
+-    echo "Kafka container does not exist"
+-    docker run -d -p 9092:9092 -e KAFKA_ADVERTISED_HOST_NAME='localhost' -e KAFKA_ADVERTISED_PORT=9092 --name kafka  --link zookeeper:zookeeper confluent/kafka
+-fi
+-
+-if [ "$KAFKA_RUNNING" = "false" ]; then
+-    docker start kafka
+-fi
+-
+-echo "Start to run Kafka"
+-
+-#
+-#setup and configure topic named "topic"
+-#
+-
+-sleep 5
+-
+-./../kafka_2.11-0.10.0.1/bin/kafka-topics.sh --create --if-not-exists  --zookeeper localhost --replication-factor 1 --partitions 1 --topic $TOPIC_SPARK 
+-./../kafka_2.11-0.10.0.1/bin/kafka-topics.sh --create --if-not-exists  --zookeeper localhost --replication-factor 1 --partitions 1 --topic $TOPIC_REDIS 
+-
+-sleep 2
+-
+-#
+-#Start Cassandra Container
+-#
+-CASSANDRA_RUNNIING=$(docker inspect -f {{.State.Running}} cassandra)
+-if [ $? -eq 1 ]; then
+-    echo "Cassandra container does not exist"
+-    docker run -d -p 7001:7001 -p 7199:7199 -p 9042:9042 -p 9160:9160 --name cassandra cassandra
+-fi
+-
+-if [ "$CASSANDRA_RUNNIING" = "false" ]; then
+-        docker start cassandra
+-fi
+-
+-echo "Start to run Cassandra"
+-
+-#
+-#Start Redis Container
+-#
+-REDIS_RUNNIING=$(docker inspect -f {{.State.Running}} redis)
+-if [ $? -eq 1 ]; then
+-    echo "Redis container does not exist"
+-    docker run -d -p 6379:6379 --name redis redis
+-fi
+-
+-if [ "$REDIS_RUNNIING" = "false" ]; then
+-        docker start redis
+-fi
+-
+-echo "Start to run Redis"
+-
+diff --git a/spark/stock_process.py b/spark/stock_process.py
+index d4c5765..be1f58c 100644
+--- a/spark/stock_process.py
++++ b/spark/stock_process.py
+@@ -9,11 +9,12 @@ import time
+ import json
+ 
+ producer = None
++target_topic = None 
+ 
+ def process(timeobj, rdd):
+     record_count = rdd.count()
+     if record_count == 0:
+-        print "Warning: no record\n"
++        print "Warning: no record"
+         return
+ # - RDD list element
+ # - (None, u'{"StockSymbol":"AAPL", "LastTradeDateTime":"2016-12-29T12:19:29Z", "LastTradePrice":"116.65"}')    
+@@ -24,7 +25,7 @@ def process(timeobj, rdd):
+     average = price_sum / record_count
+     current_time = time.time()
+     payload = json.dumps({"timestamp": time.time() , "average_price": average})
+-    producer.send("redisconsume1", value = payload)
++    producer.send(target_topic, value = payload)
+     print payload
+ 
+ if __name__ == "__main__":
+@@ -32,13 +33,15 @@ if __name__ == "__main__":
+     parser.add_argument("spark_url", help = "spark_url for master parameter")
+     parser.add_argument("app_name", help = "application name")
+     parser.add_argument("topic", help = "topic")
+-    parser.add_argument("kafka_broker", help = "kafka_broker url")
++    parser.add_argument("kafka_broker", help = "kafka broker url")
++    parser.add_argument("target_topic", help = "target topic")
+ 
+     args = parser.parse_args()
+     spark_url = args.spark_url
+     app_name = args.app_name
+     topic = args.topic
+     brokers = args.kafka_broker
++    target_topic = args.target_topic
+ 
+     sc = SparkContext("local[2]", app_name)
+     ssc = StreamingContext(sc, 4)

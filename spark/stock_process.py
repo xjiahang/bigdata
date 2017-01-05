@@ -9,11 +9,12 @@ import time
 import json
 
 producer = None
+target_topic = None 
 
 def process(timeobj, rdd):
     record_count = rdd.count()
     if record_count == 0:
-        print "Warning: no record\n"
+        print "Warning: no record"
         return
 # - RDD list element
 # - (None, u'{"StockSymbol":"AAPL", "LastTradeDateTime":"2016-12-29T12:19:29Z", "LastTradePrice":"116.65"}')    
@@ -24,7 +25,7 @@ def process(timeobj, rdd):
     average = price_sum / record_count
     current_time = time.time()
     payload = json.dumps({"timestamp": time.time() , "average_price": average})
-    producer.send("redisconsume1", value = payload)
+    producer.send(target_topic, value = payload)
     print payload
 
 if __name__ == "__main__":
@@ -32,13 +33,15 @@ if __name__ == "__main__":
     parser.add_argument("spark_url", help = "spark_url for master parameter")
     parser.add_argument("app_name", help = "application name")
     parser.add_argument("topic", help = "topic")
-    parser.add_argument("kafka_broker", help = "kafka_broker url")
+    parser.add_argument("kafka_broker", help = "kafka broker url")
+    parser.add_argument("target_topic", help = "target topic")
 
     args = parser.parse_args()
     spark_url = args.spark_url
     app_name = args.app_name
     topic = args.topic
     brokers = args.kafka_broker
+    target_topic = args.target_topic
 
     sc = SparkContext("local[2]", app_name)
     ssc = StreamingContext(sc, 4)
