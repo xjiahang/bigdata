@@ -1,0 +1,19 @@
+{
+  "name": "stock-chart",
+  "version": "1.0.0",
+  "description": "web app to show dynamic stock",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "nathan",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.14.0",
+    "jquery": "^3.1.1",
+    "minimist": "^1.2.0",
+    "redis": "^2.6.3",
+    "smoothie": "^1.27.0",
+    "socketio": "^1.0.0"
+  }
+}
